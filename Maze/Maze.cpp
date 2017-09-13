@@ -2,21 +2,17 @@
 //
 
 #include "stdafx.h"
-#include <cstdlib>
-#include <iostream>
-#include <math.h>
-#include <fstream>
-#include <new>
-#include <conio.h>
-#include <windows.h>
+#include "cls.h"
 
 using namespace std;
+
+HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
 int menu(int game)
 {
 	char wybor, nick_wynik[12];
 	int poziomy_wynik, punkty_wynik;
-	system("cls");
+	cls(hStdout);
 	cout << "-----------------\n";
 	cout << "1.Nowa gra\n";
 	cout << "2.Pomoc\n";
@@ -29,7 +25,7 @@ int menu(int game)
 	case 49: {game = 1; }; break;       ///// 49 to kod ASCII 1
 	case 50:                       ///// 50 to kod ASCII 2
 	{
-		system("cls");
+		cls(hStdout);
 		cout << "1.OPIS-----------------------------------------------------------.\n";
 		cout << "Celem tej prostej gry jest przejscie postacia przez labirynt.\n";
 		cout << "Zadanie to jest o tyle proste, ze w grze nie istnieje zaden limit\n";
@@ -57,12 +53,12 @@ int menu(int game)
 	case 27:
 	{
 		game = 0;
-		system("cls");
+		cls(hStdout);
 		cout << "Przerwano\n";
 		system("PAUSE");
 	}; break;
 	}
-	system("cls");
+	cls(hStdout);
 	// cout << game;
 	// getch();
 	return(game = false);
@@ -75,7 +71,6 @@ int main()
 	char tab[20][30][60], i = 1, klawisz, pom, imie[12], imie_wynik[12];
 	int game = 1;    ///Zmienna prawda-falsz - jesli game=false to program glowny nie wczyta menu wyboru poziomu trudnosci
 	int x = 0, y = 0, z = 0, ilosc_ruchow = 0, klawisz_pom = '0', punktacja = 0, ilosc_poziomow = 0, poziom = 0, wym1 = 0, wym2 = 0, punktacja_wynik = 0, ilosc_poziomow_wynik = 0; ///x,y,z-pomocnicze do zapisywania pozycji "postaci"; ilosc_ruchow=na jej podstawie obliczana jest punktacja; ilosc_poziomow=zlicza ile poziomow jest w pliku, wym1,wym2-zaleznie od poziomu trudnosci dostosowuja petle do wyswietlania odpowiednich wielkosci map
-
 	system("chcp 1252");
 	menu(game);
 	//cout << game;
@@ -112,7 +107,7 @@ int main()
 		return EXIT_SUCCESS;
 	}
 	/////////////////////////////////////////////////////////////////////////////Wczytanie mapy z pliku do tablicy tab 
-	system("cls");
+	cls(hStdout);
 	ifstream wejscie_easy("Level_easy.txt");
 	if (!wejscie_easy)
 	{
@@ -170,7 +165,7 @@ int main()
 		do
 		{
 			ilosc_ruchow = ilosc_ruchow + 1;
-			system("cls");
+			cls(hStdout);
 			if (i == ilosc_poziomow) break; ///Po ukonczeniu ostatniego dostepnego w pliku poziomu program konczy wychodzi z petli (bez wyswietlania pustej mapy jak bez tego warunku)
 			cout << "Ruch: " << ilosc_ruchow << "\n" << "\n";
 			for (int j = 0; j<wym1; j++)
@@ -248,11 +243,11 @@ int main()
 				if (tab[x][y][z + 1] != '#')
 				{
 					pom = tab[x][y][z + 1];
-					std::cout << "<<<<" << tab[x][y][z] << " tab[" << x << "][" << y << "][" << z << "] ... " << tab[x][y][z + 1] << " tab[" << x << "][" << y << "][" << z + 1 << "]>>>>";
+					//std::cout << "<<<<" << tab[x][y][z] << " tab[" << x << "][" << y << "][" << z << "] ... " << tab[x][y][z + 1] << " tab[" << x << "][" << y << "][" << z + 1 << "]>>>>";
 					tab[x][y][z + 1] = tab[x][y][z];
 					tab[x][y][z] = pom;
-					std::cout << "<<<<" << pom << " tab[" << x << "][" << y << "][" << z << "]>>>>";
-					_getch();
+					//std::cout << "<<<<" << pom << " tab[" << x << "][" << y << "][" << z << "]>>>>";
+					//_getch();
 				}
 				else
 				{
@@ -293,7 +288,7 @@ int main()
 			}; break;
 			case 27:                   ////////////////////////////////////////// 27 to kod ASCII dla 'ESC', wyjscie z programu
 			{
-				system("cls");
+				cls(hStdout);
 				cout << "Przerwano\n";
 				cout << "Wykonano " << ilosc_ruchow << " ruchow\n";
 				system("PAUSE");
@@ -306,7 +301,7 @@ int main()
 	while (i - 1 != ilosc_poziomow);
 	if (x != 0)
 	{
-		system("cls");
+		cls(hStdout);
 		cout << "Ilosc poziomow: " << ilosc_poziomow;
 		punktacja = punktacja + ilosc_ruchow;
 		cout << "\nZdobyles " << punktacja << " punktow.\n";
@@ -336,7 +331,7 @@ int main()
 			}
 			else
 			{
-				system("cls");
+				cls(hStdout);
 				cout << "Najlepszy wynik: \n";
 				cout << "Ilosc poziomow: " << ilosc_poziomow_wynik << " Ilosc punktow: " << punktacja_wynik << " Nick:" << imie_wynik;
 				_getch();

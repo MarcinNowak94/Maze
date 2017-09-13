@@ -9,6 +9,13 @@
 
 #include <stdio.h>
 #include <tchar.h>
+#include <cstdlib>
+#include <iostream>
+#include <math.h>
+#include <fstream>
+#include <new>
+#include <conio.h>
+#include <windows.h>
 
 
 
