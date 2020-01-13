@@ -2,350 +2,285 @@
 //
 
 #include "stdafx.h"
-#include "cls.h"
-
-using namespace std;
+#include "cls.h"			//this is included twice
+#include "simplemenu.h"
 
 HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
-int menu(int game)
-{
-	char wybor, nick_wynik[12];
-	int poziomy_wynik, punkty_wynik;
-	cls(hStdout);
-	cout << "-----------------\n";
-	cout << "1.Nowa gra\n";
-	cout << "2.Pomoc\n";
-	cout << "3.Najlepszy wynik\n";
-	cout << "-----------------\n";
-	cout << "ESC aby wyjsc\n";
-	wybor = _getch();
-	switch (wybor)
-	{
-	case 49: {game = 1; }; break;       ///// 49 to kod ASCII 1
-	case 50:                       ///// 50 to kod ASCII 2
-	{
-		cls(hStdout);
-		cout << "1.OPIS-----------------------------------------------------------.\n";
-		cout << "Celem tej prostej gry jest przejscie postacia przez labirynt.\n";
-		cout << "Zadanie to jest o tyle proste, ze w grze nie istnieje zaden limit\n";
-		cout << "czasowy czy ruchowy, ani zadni przeciwnicy.\n";
-		cout << "2.LEGENDA--------------------------------------------------------.\n";
-		cout << "H - postac ktora porusza gracz.\n";
-		cout << ". - przestrzen po ktorej postac moze sie poruszac.\n";
-		cout << "# - sciana.\n";
-		cout << "O - wyjscie z labiryntu.\n";
-		cout << "-----------------------------------------------------------------.\n";
+enum move { LEFT  = 'a',
+			RIGHT = 'd',
+            DOWN  = 's',
+			UP    = 'w',
+			ESC   = 27 /*ASCII for ESC*/};
+
+//enum arrows{	LEFT = 75,	//Arrow left
+//			RIGHT= 77,	//Arrow right
+//			DOWN = 80,	//Arrow down
+//			UP	 = 72,	//Arrow up
+//			ESC  = 27 /*ASCII for ESC*/};
+
+
+enum tiles{ HERO     = 'H',
+	        WALL     = '#',
+	        CORRIDOR = '.',
+	        EXIT     = 'O'};
+
+
+
+struct Score {
+	int level = 0;
+	int score = 0;
+	std::string nickname = {};
+};
+struct position {
+	unsigned int level = {};
+	unsigned int row = {};
+	unsigned int column = {};
+};
+
+
+bool Highscore(const Score & player_score) {
+	
+	std::cout << '\n' << player_score.nickname << "\'s score:\n"
+		<< "Levels passed:\t" << player_score.level << '\n'
+		<< "Points:\t\t" << player_score.score << '\n\n';
+	
+	const std::string savefilename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Tabela_wynikow.txt";
+	Score current_highscore = {};
+
+	std::ifstream saved_score(savefilename);
+	if (!saved_score){
+		std::cout << "Could not open file " << savefilename << " .\a\n";
+		return EXIT_FAILURE;
+	};
+	saved_score >> current_highscore.level;
+	saved_score >> current_highscore.score;
+	saved_score >> current_highscore.nickname;
+	saved_score.close();
+
+	if (current_highscore.level>= player_score.level && 
+		current_highscore.score< player_score.score ){
+		std::cout << "Sorry gal/pal, You were close. Current highscore is:\n"
+			<< "Levels passed:\t" << current_highscore.level << '\n'
+			<< "Points:\t\t" << current_highscore.score << '\n\n'
+			<< "You were " << player_score.score-current_highscore.score << " less moves shy of being a true champion!";
 		_getch();
-		menu(game);
-	}; break;
-	case 51:                    ///// 
-	{
-		ifstream wczytaj_wynik("Tabela_wynikow.txt");
-		wczytaj_wynik >> poziomy_wynik;
-		wczytaj_wynik >> punkty_wynik;
-		wczytaj_wynik >> nick_wynik;
-		wczytaj_wynik.close();
-		cout << "Ilosc poziomow: " << poziomy_wynik << " Ilosc punktow: " << punkty_wynik << " Nick:" << nick_wynik;
-		_getch();
-		menu(game);
-	}; break;
-	case 27:
-	{
-		game = 0;
-		cls(hStdout);
-		cout << "Przerwano\n";
-		system("PAUSE");
-	}; break;
-	}
-	cls(hStdout);
-	// cout << game;
-	// getch();
-	return(game = false);
-}
-
-
-
-int main()
-{
-	char tab[20][30][60], i = 1, klawisz, pom, imie[12], imie_wynik[12];
-	int game = 1;    ///Zmienna prawda-falsz - jesli game=false to program glowny nie wczyta menu wyboru poziomu trudnosci
-	int x = 0, y = 0, z = 0, ilosc_ruchow = 0, klawisz_pom = '0', punktacja = 0, ilosc_poziomow = 0, poziom = 0, wym1 = 0, wym2 = 0, punktacja_wynik = 0, ilosc_poziomow_wynik = 0; ///x,y,z-pomocnicze do zapisywania pozycji "postaci"; ilosc_ruchow=na jej podstawie obliczana jest punktacja; ilosc_poziomow=zlicza ile poziomow jest w pliku, wym1,wym2-zaleznie od poziomu trudnosci dostosowuja petle do wyswietlania odpowiednich wielkosci map
-	system("chcp 1252");
-	menu(game);
-	//cout << game;
-	//getch();
-	if (game != 0)      //////Jesli w procedurze menu nie nacisnieto klawisz ESC menu wyboru poziomu trudnosci otworzy sie
-	{
-		cout << "Wybierz poziom trudnosci: \n";
-		cout << "1.Latwy (10x20)\n";
-		cout << "2.Trudny (20x40)\n";
-		//cout << "3.Trudny (30x60)\n";
-		poziom = _getch();
-		switch (poziom)
-		{
-		case 49:   /////49 to kod ASCII 1  
-		{
-			wym1 = 10;
-			wym2 = 20;
-		}; break;
-		case 50:     /////50 to kod ASCII 2
-		{
-			wym1 = 20;
-			wym2 = 40;
-		}; break;
-		/*case 51:   /////51 to kod ASCII 3
-		{
-		wym1=30;
-		wym2=60;
-		}; break;*/
-		}
-	}
-	else
-	{
-		system("PAUSE");
 		return EXIT_SUCCESS;
-	}
-	/////////////////////////////////////////////////////////////////////////////Wczytanie mapy z pliku do tablicy tab 
+	};
+
+	std::ofstream save_score(savefilename);
+	save_score << player_score.level << "\n" << player_score.score << "\n" << player_score.nickname;
+	save_score.close();
+	std::cout << "Your score has been saved!:\a\n";
+
+	_getch();
+	return EXIT_SUCCESS;
+};
+int Game(std::vector<std::vector<std::vector<char>>> map) {
+	Score current_score = {};
+	std::cout << "Input Your nickname: ";
+	std::getline(std::cin, current_score.nickname);
+	unsigned int levelscore = 0;
+	position hero;
+	char *herotile = NULL;
+	char *destinationtile = NULL;
+	char *exittile = NULL;
+	char move = {};
+	std::string buffer{};
+	
+	//Game loop
 	cls(hStdout);
-	ifstream wejscie_easy("Level_easy.txt");
-	if (!wejscie_easy)
-	{
-		cout << "Nie mozna otworzyc pliku\n";
-		_getch();
-		return 1;
-	}
-	ifstream wejscie_medium("Level_medium.txt");
-	if (!wejscie_medium)
-	{
-		cout << "Nie mozna otworzyc pliku\n";
-		_getch();
-		return 1;
-	}
-	ifstream wejscie_hard("Level_hard.txt");
-	if (!wejscie_hard)
-	{
-		cout << "Nie mozna otworzyc pliku\n";
-		_getch();
-		return 1;
-	}
-	////////////////////////////////////////////////////////////////////////Wrzucanie mapy z pliku do tablicy tab
-	for (i = 0; i<20; i++)
-	{
-		for (int j = 0; j<wym1; j++)
-		{
-			for (int k = 0; k<wym2; k++)
-			{
-				if (wym1 == 10)
-				{
-					wejscie_easy >> tab[i][j][k];
-				}
-				else if (wym1 == 20)
-				{
-					wejscie_medium >> tab[i][j][k];
-				}
-				else
-				{
-					wejscie_hard >> tab[i][j][k];
-				}
+	for (size_t level = 0; level < map.size(); level++) {
+		current_score.level++;
+		levelscore = 0;
+		do{
+			//Draw map
+			for (size_t row = 0; row < map[level].size(); row++) {
+				for (size_t column = 0; column < map[level][row].size(); column++) {
+					/*switch (map[level][row][column]){
+							case HERO: {std::cout << char(234); }; break;
+							case WALL: {std::cout << char(219); }; break;
+							case EXIT: {std::cout << EXIT; }; break;
+							case CORRIDOR: {std::cout << char(234); }; break;
+							default: {std::cout << "Wrong tile supplied, expected ("
+												<< HERO << ' ' << WALL << ' ' << CORRIDOR << ' ' << EXIT
+												<< "), recieved " << map[level][row][column] << '\a\n';
+												_getch();
+												return EXIT_FAILURE; } break;
+					};*/
+
+					std::cout << (map[level][row][column] == WALL ? char(219) : map[level][row][column]);
+					//buffer.append(map[level][row][column] == WALL ? char(219) : map[level][row][column]);
+					switch (map[level][row][column]) {
+					case 'H': { herotile = &map[level][row][column]; 
+								hero.level = level; 
+								hero.row = row;
+								hero.column = column; }; break;
+					case 'O': { exittile = &map[level][row][column]; }; break;
+
+					default:
+						break;
+					}
+				};
+				std::cout << '\n';
+				//buffer.append('\n');
+			};
+			//std::cout << buffer;
+			std::cout << "Current score: " << current_score.score << "\tLevel score: " << levelscore << '\n';
+			
+			//Move
+			move = _getch();
+
+			//if (move == '0' || move == '0xE0') { move = _getch(); };	//arrow keys are precieded either by 0 or 0xE0 in input
+			switch (move) {
+				case LEFT: {destinationtile = &map[hero.level][hero.row][hero.column - 1];
+							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
+							std::swap(*herotile, *destinationtile);
+							levelscore++; }; break;
+				case RIGHT:{destinationtile = &map[hero.level][hero.row][hero.column + 1];
+							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
+							std::swap(*herotile, *destinationtile);
+							levelscore++; }; break;
+				case DOWN: {destinationtile = &map[hero.level][hero.row + 1][hero.column];
+							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
+							std::swap(*herotile, *destinationtile);
+							levelscore++; }; break;
+				case UP:   {destinationtile = &map[hero.level][hero.row - 1][hero.column];
+							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
+							std::swap(*herotile, *destinationtile);
+							levelscore++; }; break;
+				case ESC:  {std::cout << "Are you sure you want to exit? Y/N : "; 
+					        if (_getch() == 'y' || _getch() == 'Y') return EXIT_SUCCESS; }; break;
+				default: {std::cout << "\nMove not defined!\a\n"; _getch(); }; break;
 			}
-		}
-		if (tab[i][0][2] == '#')			///Liczenie ile poziomow znajduje sie w pliku (element [i][0][2] ZAWSZE jest czescia obramowania poziomu czyli MUSI to byc # - jezeli nie to poziom nie istnieje)
-		{
-			ilosc_poziomow = ilosc_poziomow + 1; /*cout << "Zwiekszono ilosc pozimow do " << ilosc_poziomow << "\n"; getch();*/
-		}
-	}
-	wejscie_easy.close();
-	wejscie_medium.close();
-	wejscie_hard.close();
-	i = 0;
-	///////////////////////////////////////////////////////////////////////wyswietlanie mapy
+			cls(hStdout);
+		} while (!(destinationtile==exittile));
+		current_score.score += levelscore;
+		cls(hStdout);
+		//std::cout << "\n\n";
+	};
+
+	Highscore(current_score);	
+	return EXIT_SUCCESS;
+};
+int PrepareMap(const unsigned int & width, const unsigned int & height) {
+	const unsigned int amount_of_levels = 3;
+
+	std::vector<std::vector<std::vector<char>>> map = {};
+	std::vector<char> full_row = {};
+	std::vector<std::vector<char>> full_level = {};
+	char tile = {};
+
+	unsigned int levels_read = 0;
+	std::string filename = {};
+	switch (width) {
+	case 10: {filename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Level_easy.txt";   }; break;
+	case 20: {filename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Level_medium.txt"; }; break;
+	case 30: {filename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Level_hard.txt";   }; break;
+	default: {std::cout << "Wrong dimensions! Expected width 10|20|30\tRecieved: " << width << "\n"; 
+		      _getch(); 
+			  return EXIT_FAILURE; }break;
+	};
+
+	std::ifstream map_file(filename);
+	if (!map_file) {
+			std::cout << "Could not open file "<< filename <<"\n\a";
+			_getch();
+			return EXIT_FAILURE;
+	};
+
+	////////////////////////////////////////////////////////////////////////Wrzucanie mapy z pliku do tablicy tab
+	
+	for (size_t level = 0; level < amount_of_levels; level++){
+		full_level.clear();
+		for (size_t row = 0; row < width; row++){
+			full_row.clear();
+			for (size_t column = 0; column < height; column++){
+				map_file >> tile;
+				full_row.push_back(tile);
+			};
+			full_level.push_back(full_row);
+		};
+		map.push_back(full_level);
+		//Count how many levels are read [0][2] is always a wall
+		if (map[level][0][2] == '#') {
+			levels_read = levels_read++;
+		};
+		
+		//Exit at EOF, empty lines are considered EOF
+		if (map_file.peek() == EOF) { break; }
+	};
+	map_file.close();
+	Game(map);
+	return EXIT_SUCCESS;
+};
+int menu() {
+	Score Score;
+	cls(hStdout);			/*clear terminal window*/
+
+	const std::string mainmenu[] = {
+		"New game",
+		"Help",
+		"Best scores"
+	};
+	const std::string difficulty_level[] = {
+		"Easy",
+		"Medium",
+		"Hard"
+	}; 
+	const unsigned int menu_options = (sizeof(mainmenu) / sizeof(*mainmenu));
+	const unsigned int difficulty_options = (sizeof(difficulty_level) / sizeof(*difficulty_level));
+
+	int input[2]{}; /*input for menu and submenus*/
+
+	//menu 
 	do
 	{
-		do
+		input[0] = simplemenu(mainmenu, "Main Menu");
+
+		switch (input[0])
 		{
-			ilosc_ruchow = ilosc_ruchow + 1;
-			cls(hStdout);
-			if (i == ilosc_poziomow) break; ///Po ukonczeniu ostatniego dostepnego w pliku poziomu program konczy wychodzi z petli (bez wyswietlania pustej mapy jak bez tego warunku)
-			cout << "Ruch: " << ilosc_ruchow << "\n" << "\n";
-			for (int j = 0; j<wym1; j++)
-			{
-				for (int k = 0; k<wym2; k++)
-				{
-					if (k%wym2 != 0)
-					{
-						cout << tab[i][j][k];
-					}
-					else
-						cout << tab[i][j][k] << "\n";
-				}
-			}
-			cout << "#";
-			///////////////////////////////////////////////////////////////////////Wyszukiwanie "postaci" w tablicy
-			for (int j = 0; j<wym1; j++)
-			{
-				for (int k = 0; k<wym2; k++)
-				{
-					if (wym1 == 10)
-					{
-						wejscie_easy >> tab[i][j][k];
-						if (tab[i][j][k] == 'H')
+		case 0: {do	{
+						input[1] = simplemenu(difficulty_level, "Chose difficulty");
+						switch (input[1])
 						{
-							x = i;
-							y = j;
-							z = k;
-						}
-					}
-					else if (wym1 == 20)
-					{
-						wejscie_medium >> tab[i][j][k];
-						if (tab[i][j][k] == 'H')
-						{
-							x = i;
-							y = j;
-							z = k;
-						}
-					}
-					else
-					{
-						wejscie_hard >> tab[i][j][k];
-						if (tab[i][j][k] == 'H')
-						{
-							x = i;
-							y = j;
-							z = k;
-						}
-					}
-				} // koniec petli for sprawdzajacej wartosc k
-			} // koniec petli for sprawdzajacej wartosc j
-			  ///////////////////////////////////////////////////////////////////////Sterowanie_"postacia"
-			klawisz = _getch();
-			switch ((int)klawisz)
-			{
-			case 97:                      ///////////////////////////////////////// 97 to kod ASCII dla 'a', przesuniecie "postaci" o jeden element w lewo
-			{
-				//cout << (int)klawisz;
-				if (tab[x][y][z - 1] != '#')
-				{
-					pom = tab[x][y][z - 1];
-					tab[x][y][z - 1] = tab[x][y][z];
-					tab[x][y][z] = pom;
-				}
-				else
-				{
-					cout << "\n" << "Ruch niedozwolony!\n";
-					ilosc_ruchow = ilosc_ruchow - 1;
-					_getch();
-				}
-			}; break;
-			case 100:                     //////////////////////////////////////// 100 to kod ASCII dla 'd', przesuniecie "postaci" o jeden element w prawo
-			{
-				if (tab[x][y][z + 1] != '#')
-				{
-					pom = tab[x][y][z + 1];
-					//std::cout << "<<<<" << tab[x][y][z] << " tab[" << x << "][" << y << "][" << z << "] ... " << tab[x][y][z + 1] << " tab[" << x << "][" << y << "][" << z + 1 << "]>>>>";
-					tab[x][y][z + 1] = tab[x][y][z];
-					tab[x][y][z] = pom;
-					//std::cout << "<<<<" << pom << " tab[" << x << "][" << y << "][" << z << "]>>>>";
-					//_getch();
-				}
-				else
-				{
-					cout << "\n" << "Ruch niedozwolony!\n";
-					ilosc_ruchow = ilosc_ruchow - 1;
-					_getch();
-				}
-			}; break;
-			case 115:                     //////////////////////////////////////// 115 to kod ASCII dla 's', przesuniecie "postaci" o jeden element w dol
-			{
-				if (tab[x][y + 1][z] != '#')
-				{
-					pom = tab[x][y + 1][z];
-					tab[x][y + 1][z] = tab[x][y][z];
-					tab[x][y][z] = pom;
-				}
-				else
-				{
-					cout << "\n" << "Ruch niedozwolony!\n";
-					ilosc_ruchow = ilosc_ruchow - 1;
-					_getch();
-				}
-			}; break;
-			case 119:                     //////////////////////////////////////// 119 to kod ASCII dla 'w', przesuniecie "postaci" o jeden element w gore
-			{
-				if (tab[x][y - 1][z] != '#')
-				{
-					pom = tab[x][y - 1][z];
-					tab[x][y - 1][z] = tab[x][y][z];
-					tab[x][y][z] = pom;
-				}
-				else
-				{
-					cout << "\n" << "Ruch niedozwolony!\n";
-					ilosc_ruchow = ilosc_ruchow - 1;
-					_getch();
-				}
-			}; break;
-			case 27:                   ////////////////////////////////////////// 27 to kod ASCII dla 'ESC', wyjscie z programu
-			{
-				cls(hStdout);
-				cout << "Przerwano\n";
-				cout << "Wykonano " << ilosc_ruchow << " ruchow\n";
-				system("PAUSE");
-				return EXIT_SUCCESS;
-			}; break;
-			}   // koniec switcha (przesuwanie "postaci")
-		} while (tab[i][1][2] == 'O'); // koniec instrukcji do .. while poziom
-		i++; ////zwiekszanie i powoduje przejscie do nastepnego poziomu
-	}///////////////////////koniec pętli do while, w której jest główna czesc gry
-	while (i - 1 != ilosc_poziomow);
-	if (x != 0)
-	{
-		cls(hStdout);
-		cout << "Ilosc poziomow: " << ilosc_poziomow;
-		punktacja = punktacja + ilosc_ruchow;
-		cout << "\nZdobyles " << punktacja << " punktow.\n";
-		cout << "Podaj swoj nick (max 12 znakow): ";
-		cin >> imie;
-		/////////////////////////////////////////////////////////////////////////////////// Wczytanie najlepszego wyniku
-		ifstream wczytaj_wynik("Tabela_wynikow.txt");
-		if (!wczytaj_wynik)
-		{
-			ofstream zapis("Tabela_wynikow.txt");             ////////////////////////////// Zapis NOWEGO najlepszego wyniku
-			zapis << ilosc_poziomow << "\n" << punktacja << "\n" << imie;
-			zapis.close();
+						case 0: {PrepareMap(10,20);}; break;
+						case 1: {PrepareMap(20,40);}; break;
+						case 2: {PrepareMap(30,60);}; break;
+						default: break;
+						};
+					} while (input[1] != difficulty_options); }; break;
+		case 1: {cls(hStdout); 
+				 std::cout << "1.DESCRIPTION------------------------------------------------------------.\n"
+						   << "Goal of this simple game is going through maze.\n"
+						   << "Player has unlimitted moves and time to finish, there are also no enemies.\n\n"
+						   << "2.LEGEND-----------------------------------------------------------------.\n"
+			               << "H - Player controlled hero.\n"
+			               << ". - Corridor that player can go through.\n"
+			               << "# - Wall.\n"
+			               << "O - Level exit.\n"
+			               << "-------------------------------------------------------------------------.\n\n"
+					       << "Press any key to continue ...\n";
+				 _getch(); }; break;
+		case 2: {std::ifstream Scores("Tabela_wynikow.txt");
+				 Scores >> Score.level;
+				 Scores >> Score.score;
+				 Scores >> Score.nickname;
+				 Scores.close();
+				 std::cout << "Nick\t|\tLevels passed\t|\tScore\t|\t\n" 
+					       << "---------------------------------------------------\n"
+					       << Score.nickname << "\t\t" << Score.level << "\t\t\t" << Score.score << "\n\n"
+					       << "Press any key to continue ...\n";
+				 _getch(); }; break;
+		default: break;
 		};
-		wczytaj_wynik >> ilosc_poziomow_wynik;
-		wczytaj_wynik >> punktacja_wynik;
-		wczytaj_wynik >> imie_wynik;
-		wczytaj_wynik.close();
-		if (ilosc_poziomow_wynik >= ilosc_poziomow)
-		{
-			if (punktacja_wynik > punktacja)
-			{
-				cout << "!!!!! Gratulacje! Twoj wynik byl najlepszy !!!!!";
-				ofstream zapis("Tabela_wynikow.txt");             ////////////////////////////// Zapis NOWEGO najlepszego wyniku
-				zapis << ilosc_poziomow << "\n" << punktacja << "\n" << imie;
-				zapis.close();
-				_getch();
-			}
-			else
-			{
-				cls(hStdout);
-				cout << "Najlepszy wynik: \n";
-				cout << "Ilosc poziomow: " << ilosc_poziomow_wynik << " Ilosc punktow: " << punktacja_wynik << " Nick:" << imie_wynik;
-				_getch();
-				system("PAUSE");
-				return EXIT_SUCCESS;
-			}
-		}
-		else if (punktacja_wynik > punktacja)
-		{
-			cout << "!!!!! Gratulacje! Twoj wynik byl najlepszy !!!!!";
-			ofstream zapis("Tabela_wynikow.txt");             ////////////////////////////// Zapis NOWEGO najlepszego wyniku
-			zapis << ilosc_poziomow << "\n" << punktacja << "\n" << imie;
-			zapis.close();
-			_getch();
-		}
-	}
-}    //koniec main
+	} while (input[0] != menu_options);
+	std::cout << "\n\a\tFarewell!\n"
+		<< "Press any key to exit...";
+	_getch();
+	return EXIT_SUCCESS;
+};
+
+int main(){
+	menu();
+};
