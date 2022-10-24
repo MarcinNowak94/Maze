@@ -4,28 +4,15 @@
 #include "stdafx.h"
 #include "cls.h"			//this is included twice
 #include "simplemenu.h"
-
 HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
-enum move { LEFT  = 'a',
-			RIGHT = 'd',
-            DOWN  = 's',
-			UP    = 'w',
-			ESC   = 27 /*ASCII for ESC*/};
-
-//enum arrows{	LEFT = 75,	//Arrow left
-//			RIGHT= 77,	//Arrow right
-//			DOWN = 80,	//Arrow down
-//			UP	 = 72,	//Arrow up
-//			ESC  = 27 /*ASCII for ESC*/};
-
-
-enum tiles{ HERO     = 'H',
-	        WALL     = '#',
-	        CORRIDOR = '.',
-	        EXIT     = 'O'};
-
-
+void sleep(float seconds) {
+	clock_t startClock = clock();
+	float secondsAhead = seconds * CLOCKS_PER_SEC;
+	// do nothing until the elapsed time has passed.
+	while (clock() < startClock + secondsAhead);
+	return;
+}
 
 struct Score {
 	int level = 0;
@@ -37,15 +24,12 @@ struct position {
 	unsigned int row = {};
 	unsigned int column = {};
 };
-
-
-bool Highscore(const Score & player_score) {
-	
+bool Highscore(const Score & player_score, std::string& gamepath) {
 	std::cout << '\n' << player_score.nickname << "\'s score:\n"
 		<< "Levels passed:\t" << player_score.level << '\n'
 		<< "Points:\t\t" << player_score.score << '\n\n';
 	
-	const std::string savefilename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Tabela_wynikow.txt";
+	const std::string savefilename = gamepath+"Tabela_wynikow.txt";
 	Score current_highscore = {};
 
 	std::ifstream saved_score(savefilename);
@@ -76,7 +60,19 @@ bool Highscore(const Score & player_score) {
 	_getch();
 	return EXIT_SUCCESS;
 };
-int Game(std::vector<std::vector<std::vector<char>>> map) {
+void DisplayScore(std::string& filename) {
+	Score Score;
+	std::ifstream Scores("Tabela_wynikow.txt");
+	Scores >> Score.level;
+	Scores >> Score.score;
+	Scores >> Score.nickname;
+	Scores.close();
+	std::cout << "Nick\t|\tLevels passed\t|\tScore\t|\t\n"
+		<< "---------------------------------------------------\n"
+		<< Score.nickname << "\t\t" << Score.level << "\t\t\t" << Score.score << "\n\n"
+		<< "Press any key to continue ...\n";
+}
+int Game(std::vector<std::vector<std::vector<char>>> map, std::string& gamepath) {
 	Score current_score = {};
 	std::cout << "Input Your nickname: ";
 	std::getline(std::cin, current_score.nickname);
@@ -88,7 +84,9 @@ int Game(std::vector<std::vector<std::vector<char>>> map) {
 	char move = {};
 	std::string buffer{};
 	
-	//Game loop
+	//Game loop ------------------------------
+	Solver solver;
+
 	cls(hStdout);
 	for (size_t level = 0; level < map.size(); level++) {
 		current_score.level++;
@@ -97,18 +95,7 @@ int Game(std::vector<std::vector<std::vector<char>>> map) {
 			//Draw map
 			for (size_t row = 0; row < map[level].size(); row++) {
 				for (size_t column = 0; column < map[level][row].size(); column++) {
-					/*switch (map[level][row][column]){
-							case HERO: {std::cout << char(234); }; break;
-							case WALL: {std::cout << char(219); }; break;
-							case EXIT: {std::cout << EXIT; }; break;
-							case CORRIDOR: {std::cout << char(234); }; break;
-							default: {std::cout << "Wrong tile supplied, expected ("
-												<< HERO << ' ' << WALL << ' ' << CORRIDOR << ' ' << EXIT
-												<< "), recieved " << map[level][row][column] << '\a\n';
-												_getch();
-												return EXIT_FAILURE; } break;
-					};*/
-
+					
 					std::cout << (map[level][row][column] == WALL ? char(219) : map[level][row][column]);
 					//buffer.append(map[level][row][column] == WALL ? char(219) : map[level][row][column]);
 					switch (map[level][row][column]) {
@@ -129,30 +116,37 @@ int Game(std::vector<std::vector<std::vector<char>>> map) {
 			std::cout << "Current score: " << current_score.score << "\tLevel score: " << levelscore << '\n';
 			
 			//Move
-			move = _getch();
-
-			//if (move == '0' || move == '0xE0') { move = _getch(); };	//arrow keys are precieded either by 0 or 0xE0 in input
-			switch (move) {
-				case LEFT: {destinationtile = &map[hero.level][hero.row][hero.column - 1];
-							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
-							std::swap(*herotile, *destinationtile);
-							levelscore++; }; break;
-				case RIGHT:{destinationtile = &map[hero.level][hero.row][hero.column + 1];
-							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
-							std::swap(*herotile, *destinationtile);
-							levelscore++; }; break;
-				case DOWN: {destinationtile = &map[hero.level][hero.row + 1][hero.column];
-							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
-							std::swap(*herotile, *destinationtile);
-							levelscore++; }; break;
-				case UP:   {destinationtile = &map[hero.level][hero.row - 1][hero.column];
-							if (*destinationtile != CORRIDOR) { std::cout << '\a'; break; };
-							std::swap(*herotile, *destinationtile);
-							levelscore++; }; break;
-				case ESC:  {std::cout << "Are you sure you want to exit? Y/N : "; 
-					        if (_getch() == 'y' || _getch() == 'Y') return EXIT_SUCCESS; }; break;
+			
+			//Sztuczna Inteligencja, LAB1: Maze Solver; Sekcja3 5ION 2022/23
+			
+			//solver.rotate(movLEFT);
+			//solver.facingWall(tiles(*destinationtile) 
+			// y - solver.rotate(movRIGHT); //rotate -LEFT
+			// n - solver.advance(), solver.rotate(movLEFT);
+			//move = solver.advance();
+			
+			//move = _getch();
+			
+			do {
+				sleep(1);
+				solver.rotate(movLEFT);		//check left
+				move = solver.advance();	//chek if wall
+				switch (move) {
+				case LEFT: {destinationtile = &map[hero.level][hero.row][hero.column - 1]; }; break;
+				case RIGHT: {destinationtile = &map[hero.level][hero.row][hero.column + 1]; }; break;
+				case DOWN: {destinationtile = &map[hero.level][hero.row + 1][hero.column]; }; break;
+				case UP: {destinationtile = &map[hero.level][hero.row - 1][hero.column]; }; break;
+				case ESC: {std::cout << "Are you sure you want to exit? Y/N : ";
+					if (_getch() == 'y' || _getch() == 'Y') return EXIT_SUCCESS; }; break;
 				default: {std::cout << "\nMove not defined!\a\n"; _getch(); }; break;
-			}
+				}
+				if (solver.facingWall((tiles)*destinationtile)) { solver.rotate(movRIGHT); };
+			} while (solver.facingWall(tiles(*destinationtile)));
+			//if (move == '0' || move == '0xE0') { move = _getch(); };	//arrow keys are precieded either by 0 or 0xE0 in input
+			
+			if (*destinationtile != CORRIDOR) { std::cout << '\a'; continue; };
+			std::swap(*herotile, *destinationtile);
+			levelscore++;
 			cls(hStdout);
 		} while (!(destinationtile==exittile));
 		current_score.score += levelscore;
@@ -160,23 +154,23 @@ int Game(std::vector<std::vector<std::vector<char>>> map) {
 		//std::cout << "\n\n";
 	};
 
-	Highscore(current_score);	
+	Highscore(current_score, gamepath);	
 	return EXIT_SUCCESS;
 };
-int PrepareMap(const unsigned int & width, const unsigned int & height) {
+int PrepareMap(const unsigned int & width, const unsigned int & height, std::string& gamepath) {
 	const unsigned int amount_of_levels = 3;
 
 	std::vector<std::vector<std::vector<char>>> map = {};
 	std::vector<char> full_row = {};
 	std::vector<std::vector<char>> full_level = {};
 	char tile = {};
-
-	unsigned int levels_read = 0;
 	std::string filename = {};
+	unsigned int levels_read = 0;
+
 	switch (width) {
-	case 10: {filename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Level_easy.txt";   }; break;
-	case 20: {filename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Level_medium.txt"; }; break;
-	case 30: {filename = "E:\\pliki\\Projekty\\Github\\Maze\\Maze\\Level_hard.txt";   }; break;
+	case 10: {filename = gamepath + "Level_easy.txt";   }; break;
+	case 20: {filename = gamepath + "Level_medium.txt"; }; break;
+	case 30: {filename = gamepath + "Level_hard.txt";   }; break;
 	default: {std::cout << "Wrong dimensions! Expected width 10|20|30\tRecieved: " << width << "\n"; 
 		      _getch(); 
 			  return EXIT_FAILURE; }break;
@@ -188,7 +182,6 @@ int PrepareMap(const unsigned int & width, const unsigned int & height) {
 			_getch();
 			return EXIT_FAILURE;
 	};
-
 	////////////////////////////////////////////////////////////////////////Wrzucanie mapy z pliku do tablicy tab
 	
 	for (size_t level = 0; level < amount_of_levels; level++){
@@ -211,11 +204,13 @@ int PrepareMap(const unsigned int & width, const unsigned int & height) {
 		if (map_file.peek() == EOF) { break; }
 	};
 	map_file.close();
-	Game(map);
+	Game(map, gamepath);
 	return EXIT_SUCCESS;
 };
+
 int menu() {
-	Score Score;
+	static std::string gamepath = "E:\\Projects\\VisualStudio\\Projects\\Git\\C++\\Maze\\Maze\\";
+	
 	cls(hStdout);			/*clear terminal window*/
 
 	const std::string mainmenu[] = {
@@ -233,45 +228,43 @@ int menu() {
 
 	int input[2]{}; /*input for menu and submenus*/
 
+	//Prepare instructions
+	std::string instructions = "1.DESCRIPTION------------------------------------------------------------.\n";
+	instructions += "Goal of this simple game is going through maze.\n";
+	instructions += "Player has unlimitted moves and time to finish, there are also no enemies.\n\n";
+	instructions += "2.LEGEND-----------------------------------------------------------------.\n";
+	instructions += HERO + " - Player controlled character.\n";
+	instructions += CORRIDOR + " - Corridor that player can go through.\n";
+	instructions += WALL + " - Wall.\n";
+	instructions += EXIT + " - Level exit.\n";
+	instructions += "-------------------------------------------------------------------------.\n\n";
+	instructions += "Press any key to continue ...\n";
+
 	//menu 
 	do
 	{
 		input[0] = simplemenu(mainmenu, "Main Menu");
-
-		switch (input[0])
-		{
-		case 0: {do	{
-						input[1] = simplemenu(difficulty_level, "Chose difficulty");
-						switch (input[1])
-						{
-						case 0: {PrepareMap(10,20);}; break;
-						case 1: {PrepareMap(20,40);}; break;
-						case 2: {PrepareMap(30,60);}; break;
+		switch (input[0]) {
+			case 0: {
+				do	{
+					input[1] = simplemenu(difficulty_level, "Chose difficulty");
+					switch (input[1]){
+						case 0: {PrepareMap(10,20, gamepath);}; break;
+						case 1: {PrepareMap(20,40, gamepath);}; break;
+						case 2: {PrepareMap(30,60, gamepath);}; break;
 						default: break;
 						};
-					} while (input[1] != difficulty_options); }; break;
-		case 1: {cls(hStdout); 
-				 std::cout << "1.DESCRIPTION------------------------------------------------------------.\n"
-						   << "Goal of this simple game is going through maze.\n"
-						   << "Player has unlimitted moves and time to finish, there are also no enemies.\n\n"
-						   << "2.LEGEND-----------------------------------------------------------------.\n"
-			               << "H - Player controlled hero.\n"
-			               << ". - Corridor that player can go through.\n"
-			               << "# - Wall.\n"
-			               << "O - Level exit.\n"
-			               << "-------------------------------------------------------------------------.\n\n"
-					       << "Press any key to continue ...\n";
-				 _getch(); }; break;
-		case 2: {std::ifstream Scores("Tabela_wynikow.txt");
-				 Scores >> Score.level;
-				 Scores >> Score.score;
-				 Scores >> Score.nickname;
-				 Scores.close();
-				 std::cout << "Nick\t|\tLevels passed\t|\tScore\t|\t\n" 
-					       << "---------------------------------------------------\n"
-					       << Score.nickname << "\t\t" << Score.level << "\t\t\t" << Score.score << "\n\n"
-					       << "Press any key to continue ...\n";
-				 _getch(); }; break;
+					} while (input[1] != difficulty_options); 
+			}; break;
+			case 1: {
+				cls(hStdout); 
+				std::cout << instructions;
+				_getch(); 
+			}; break;
+			case 2: {
+				DisplayScore(gamepath + "Tabela_wynikow.txt");
+				_getch(); 
+			}; break;
 		default: break;
 		};
 	} while (input[0] != menu_options);

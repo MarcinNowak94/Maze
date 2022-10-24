@@ -17,6 +17,7 @@
 #include <conio.h>
 #include <windows.h>
 
-
+#include "settings.h"
+#include "solver.h"
 
 // TODO: W tym miejscu odwołaj się do dodatkowych nagłówków wymaganych przez program
